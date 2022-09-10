@@ -56,7 +56,7 @@ class Learner(models.Model):
 class Course(models.Model):
     name = models.CharField(null=False, max_length=30, default='online course')
     image = models.ImageField(upload_to='course_images/')
-    description = models.CharField(max_length=1000)
+    description = models.CharField(max_length=1000, default="Please write a description")
     pub_date = models.DateField(null=True)
     instructors = models.ManyToManyField(Instructor)
     users = models.ManyToManyField(settings.AUTH_USER_MODEL, through='Enrollment')
@@ -101,20 +101,27 @@ class Enrollment(models.Model):
     # Has a grade point for each question
     # Has question content
     # Other fields and methods you would like to design
-#class Question(models.Model):
+
+class Question(models.Model):
+    # Foreign key to Course
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     # Foreign key to lesson
+    # lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
     # question text
+    question = models.CharField(max_length=200, default="Write your question here.")
     # question grade/mark
-
+    points = models.IntegerField(default=1)
+    # add Choices
+    # choices = models.ManyToManyField(Choice)
     # <HINT> A sample model method to calculate if learner get the score of the question
-    #def is_get_score(self, selected_ids):
-    #    all_answers = self.choice_set.filter(is_correct=True).count()
-    #    selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
-    #    if all_answers == selected_correct:
-    #        return True
-    #    else:
-    #        return False
-
+    def grade(self, selected_ids):
+        all_answers = self.choice_set.filter(is_correct=True).count()
+        selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
+        if all_answers == selected_correct:
+            
+            return int(self.points)
+        else:
+            return int(0)
 
 #  <HINT> Create a Choice Model with:
     # Used to persist choice content for a question
@@ -122,13 +129,22 @@ class Enrollment(models.Model):
     # Choice content
     # Indicate if this choice of the question is a correct one or not
     # Other fields and methods you would like to design
-# class Choice(models.Model):
+class Choice(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    choice = models.CharField(max_length=30, default='Write a choice')
+    is_correct = models.BooleanField(default='TRUE')
+    # Foreign key to Course
+    # course = models.ManyToManyField(Course)
+    # Foreign key to Lesson
+    # lesson = models.ManyToManyField(Lesson)
 
 # <HINT> The submission model
 # One enrollment could have multiple submission
 # One submission could have multiple choices
 # One choice could belong to multiple submissions
-#class Submission(models.Model):
-#    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
-#    choices = models.ManyToManyField(Choice)
-#    Other fields and methods you would like to design
+class Submission(models.Model):
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
+    choices = models.ManyToManyField(Choice)
+    # question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    #Other fields and methods you would like to design
+
