@@ -4,7 +4,7 @@
       - route: onlinecourse2.mybluemix.net
     memory: 128M
     buildpack: python_buildpack
-  - name: onlinecourse-nginx
+  - name: onlinecourse2-nginx
     routes:
       - route: onlinecourse2.mybluemix.net/static
     memory: 128M
