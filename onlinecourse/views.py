@@ -1,7 +1,11 @@
+from multiprocessing import context
+from random import choices
+from urllib.parse import urlparse
+from urllib.request import Request
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 # <HINT> Import any new Models here
-from .models import Course, Enrollment
+from .models import Course, Enrollment, Question, Choice, Submission
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
@@ -12,6 +16,71 @@ import logging
 logger = logging.getLogger(__name__)
 # Create your views here.
 
+def submit_view(request, course_id):
+    context={}
+    user = request.user
+    course = Course.objects.get(id = course_id)
+    enrollment = Enrollment.objects.get(user = user, course = course)
+    submitted_anwsers = []
+    for key in request.POST:
+        if key.startswith('choice'):
+            value = request.POST[key]
+            choice_id = int(value)
+            submitted_anwsers.append(choice_id)
+
+    # Add each selected choice object to the submission object
+    
+    sub = Submission.objects.create(enrollment=enrollment)
+    sub.save()
+    for choice_id in submitted_anwsers: 
+        choice = Choice.objects.get(id=choice_id)
+        sub.choices.add(choice)
+
+    context['user']=user
+    context['course']=course
+    context['enrollment']=enrollment
+    context['submission']=sub
+
+    return redirect('onlinecourse:result', course.id, sub.id)
+
+def show_exam_result(request, course_id, submission_id):
+    # Create a context dictionary
+    context={}
+    # Get the course object based on ids in arguments
+    course = Course.objects.get(id = course_id)
+    # Get the submission object based on ids in arguments
+    submission = Submission.objects.get(id = submission_id)
+    # Get the selected choice ids from the submission record
+    selected_ids = submission.choices.all()
+    ## for each selected choice, check if it is a correct answer or not
+    grade = 0
+    total_possible = 0
+    #for choice in selected_ids:
+    #    question_object = choice.question
+    #    points = question_object.points
+    #    if choice.is_correct == "TRUE":
+    #        grade += points
+    #        total_possible += points
+    #    else:
+    #        total_possible += points
+    course_questions = Question.objects.filter(course=course)
+    for question in course_questions:
+        question_grade = question.grade(selected_ids)
+        grade += question_grade
+        total_possible += question.points
+    # Calculate the total score by adding up the grades for all questions
+    total_score = (grade / total_possible) * 100
+    # Add the course, selected_ids, and grade to context
+    context['course']=course
+    context['submission']=submission
+    context['selected_ids']=selected_ids
+    context['grade']=total_score
+    context['correct']=grade
+    context['total']=total_possible
+    return render(request, 'onlinecourse/exam_result_bootstrap.html', context)
+
+
+        
 
 def registration_request(request):
     context = {}
